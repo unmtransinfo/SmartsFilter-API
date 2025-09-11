@@ -1,0 +1,377 @@
+{
+  "info": {
+    "title": "API for SMARTS FILTER",
+    "description": "Endpoints for SMARTS\u2011based filtering.\n",
+    "version": 1
+  },
+  "basePath": "/api/v1",
+  "components": {
+    "schemas": {
+      "painsentry": {
+        "type": "object"
+      }
+    },
+    "parameters": {
+      "SMILESList": {
+        "name": "SMILES",
+        "in": "query",
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true,
+        "description": "List of compound SMILES"
+      },
+      "SmileName": {
+        "name": "Smile_Names",
+        "in": "query",
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": false,
+        "description": "List of compound names"
+      },
+      "SmartName": {
+        "name": "Smart_Names",
+        "in": "query",
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "collectionFormat": "multi",
+        "required": false,
+        "description": "List of compound names"
+      },
+      "exclude_mol_props": {
+        "name": "ExcludeMolProp",
+        "in": "query",
+        "type": "boolean",
+        "required": false,
+        "description": "Exclude Molecular Properties"
+      },
+      "Smarts": {
+        "name": "smarts",
+        "in": "query",
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "collectionFormat": "multi",
+        "required": true,
+        "style": "form",
+        "explode": true,
+        "description": "Takes one or more SMARTS strings (comma-separated or repeated)."
+      },
+      "IsoMericSmiles": {
+        "name": "isomericSmiles",
+        "in": "query",
+        "type": "boolean",
+        "required": false,
+        "description": "Return isomeric SMILES"
+      },
+      "KekuleSmiles": {
+        "name": "kekuleSmiles",
+        "in": "query",
+        "type": "boolean",
+        "required": false,
+        "description": "Return kekule SMILES"
+      },
+      "usa": {
+        "name": "unique_set",
+        "in": "query",
+        "type": "boolean",
+        "required": false,
+        "description": "Unique Set-of-Atoms Match Counts"
+      },
+      "nonzero_rows": {
+        "name": "only_rows",
+        "in": "query",
+        "type": "boolean",
+        "required": false,
+        "description": "Only include rows (i.e., molecules) with at least one match in output"
+      },
+      "strict": {
+        "name": "strict_error",
+        "in": "query",
+        "type": "boolean",
+        "required": false,
+        "description": "Raise error if any SMARTS cannot be parsed. If not set, will ignore invalid SMARTS."
+      }
+    },
+    "responses": {
+      "ResponseCode400": {
+        "description": "Malformed request error"
+      }
+    }
+  },
+  "paths": {
+    "/smarts_filter/get_filterpains": {
+      "get": {
+        "tags": [
+          "SMARTS FILTER"
+        ],
+        "summary": "Get the SMILES strings with their PAINS test result.",
+        "description": "Checks if the input SMILES have passed or failed the PAINS Test.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SMILESList"
+          },
+          {
+            "$ref": "#/components/parameters/SmileName"
+          },
+          {
+            "$ref": "#/components/parameters/exclude_mol_props"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A JSON object containing all compounds and their associated tests either passed or failed.",
+            "examples": {
+              "application/json": {
+                "failed": [
+                  "O=C1NC(=O)C(=Cc2ccc(C=C3C(=O)NC(=O)NC3=O)cc2)C(=O)N1"
+                ],
+                "passed": [
+                  "COc1cc2c(ccnc2cc1)C(O)C4CC(CC3)C(C=C)CN34"
+                ]
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ResponseCode400"
+          }
+        }
+      }
+    },
+    "/smarts_filter/get_matchcounts": {
+      "get": {
+        "tags": [
+          "SMARTS FILTER"
+        ],
+        "summary": "Get match counts of SMARTS patterns per SMILES.",
+        "description": "Checks SMARTS pattern match counts for each input SMILES.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SMILESList"
+          },
+          {
+            "$ref": "#/components/parameters/SmileName"
+          },
+          {
+            "$ref": "#/components/parameters/Smarts"
+          },
+          {
+            "$ref": "#/components/parameters/SmartName"
+          },
+          {
+            "$ref": "#/components/parameters/usa"
+          },
+          {
+            "$ref": "#/components/parameters/exclude_mol_props"
+          },
+          {
+            "$ref": "#/components/parameters/nonzero_rows"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Match counts for each SMILES.",
+            "examples": {
+              "application/json": [
+                {
+                  "n_matches": 1,
+                  "name": "quinine",
+                  "smiles": "C=CC1CN2CCC1CC2C(O)c1ccnc2ccc(OC)cc12"
+                },
+                {
+                  "n_matches": 0,
+                  "name": "caffeine",
+                  "smiles": "Cn1c(=O)c2c(ncn2C)n(C)c1=O"
+                }
+              ]
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ResponseCode400"
+          }
+        }
+      }
+    },
+    "/smarts_filter/get_matchfilter": {
+      "get": {
+        "tags": [
+          "SMARTS FILTER"
+        ],
+        "summary": "Get matched SMILES strings with optional names.",
+        "description": "Returns matched SMILES (and names if provided) that pass SMARTS filtering.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SMILESList"
+          },
+          {
+            "$ref": "#/components/parameters/SmileName"
+          },
+          {
+            "$ref": "#/components/parameters/Smarts"
+          },
+          {
+            "$ref": "#/components/parameters/SmartName"
+          },
+          {
+            "$ref": "#/components/parameters/exclude_mol_props"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of each SMILES and names matching the multi SMARTS.",
+            "examples": {
+              "application/json": {
+                "example": {
+                  "example": [
+                    {
+                      "SMILES": "OC(c1ccccc1)c1nc2ccccc2[nH]1",
+                      "name": "NSC-405"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ResponseCode400"
+          }
+        }
+      }
+    },
+    "/smarts_filter/get_multi_matchcounts": {
+      "get": {
+        "tags": [
+          "SMARTS FILTER"
+        ],
+        "summary": "Get SMARTS pattern match counts per SMILES.",
+        "description": "For each SMILES, compute how many SMARTS patterns match (multi-match counting).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SMILESList"
+          },
+          {
+            "$ref": "#/components/parameters/SmileName"
+          },
+          {
+            "$ref": "#/components/parameters/Smarts"
+          },
+          {
+            "$ref": "#/components/parameters/IsoMericSmiles"
+          },
+          {
+            "$ref": "#/components/parameters/KekuleSmiles"
+          },
+          {
+            "$ref": "#/components/parameters/SmartName"
+          },
+          {
+            "$ref": "#/components/parameters/usa"
+          },
+          {
+            "$ref": "#/components/parameters/strict"
+          },
+          {
+            "$ref": "#/components/parameters/nonzero_rows"
+          },
+          {
+            "$ref": "#/components/parameters/exclude_mol_props"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Match counts per compound.",
+            "examples": {
+              "application/json": [
+                {
+                  "n_matches": 4,
+                  "name": "GL-1566",
+                  "smiles": "O=C(O)c1nnn(...)c1C(=O)O"
+                }
+              ]
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ResponseCode400"
+          }
+        }
+      }
+    },
+    "/smarts_filter/get_multi_matchfilter": {
+      "get": {
+        "tags": [
+          "SMARTS FILTER"
+        ],
+        "summary": "Get matched SMILES (multiple SMARTS).",
+        "description": "Returns SMILES strings that match any of the given SMARTS patterns, with names if provided.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SMILESList"
+          },
+          {
+            "$ref": "#/components/parameters/SmileName"
+          },
+          {
+            "$ref": "#/components/parameters/Smarts"
+          },
+          {
+            "$ref": "#/components/parameters/SmartName"
+          },
+          {
+            "$ref": "#/components/parameters/strict"
+          },
+          {
+            "$ref": "#/components/parameters/exclude_mol_props"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matched SMILES with optional names.",
+            "examples": {
+              "application/json": {
+                "example": [
+                  {
+                    "n_matches(query_01 = \"[ND1H2]-[ND2]=Cc1c(-[OH1])cccc1\")": 0,
+                    "n_matches(query_02 = \"[!#1]-!@[CD4](-!@[!#1])1C(=O)NC(=S)S1\")": 0,
+                    "n_matches(query_03 = \"[OH]\")": 1,
+                    "name": "quinine",
+                    "smiles": "C=CC1CN2CCC1CC2C(O)c1ccnc2ccc(OC)cc12"
+                  },
+                  {
+                    "n_matches(query_01 = \"[ND1H2]-[ND2]=Cc1c(-[OH1])cccc1\")": 0,
+                    "n_matches(query_02 = \"[!#1]-!@[CD4](-!@[!#1])1C(=O)NC(=S)S1\")": 0,
+                    "n_matches(query_03 = \"[OH]\")": 0,
+                    "name": "caffeine",
+                    "smiles": "Cn1c(=O)c2c(ncn2C)n(C)c1=O"
+                  },
+                  {
+                    "n_matches(query_01 = \"[ND1H2]-[ND2]=Cc1c(-[OH1])cccc1\")": 0,
+                    "n_matches(query_02 = \"[!#1]-!@[CD4](-!@[!#1])1C(=O)NC(=S)S1\")": 0,
+                    "n_matches(query_03 = \"[OH]\")": 0,
+                    "name": "AACFAZ",
+                    "smiles": "COC1=C(C(C)=NN=C(C)C2=C(OC)C(=O)OC2c2ccccc2Cl)C(c2ccccc2Cl)OC1=O"
+                  },
+                  {
+                    "n_matches(query_01 = \"[ND1H2]-[ND2]=Cc1c(-[OH1])cccc1\")": 0,
+                    "n_matches(query_02 = \"[!#1]-!@[CD4](-!@[!#1])1C(=O)NC(=S)S1\")": 0,
+                    "n_matches(query_03 = \"[OH]\")": 0,
+                    "name": "ELAVIL",
+                    "smiles": "CN(C)CCC=C1c2ccccc2CCc2ccccc21"
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ResponseCode400"
+          }
+        }
+      }
+    }
+  }
+}
