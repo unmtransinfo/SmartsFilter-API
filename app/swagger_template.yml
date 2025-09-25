@@ -3,8 +3,6 @@ info:
   description: |
     Endpoints for SMARTS‑based filtering.
   version: 1
-basePath: /api/v1
-
 components:
   schemas:
     painsentry:

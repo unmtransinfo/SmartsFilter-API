@@ -14,13 +14,14 @@ services:
 
   smartsfilter_ui:
     build:
-      context: https://github.com/unmtransinfo/SmartFilter-UI.git#main
+      context: https://github.com/unmtransinfo/SmartFilter-UI.git#092425
     environment:
       - NODE_OPTIONS=--openssl-legacy-provider
     env_file:
       - .env
+    command: npx vite build
     volumes:
-      - static_files_smartsfilter:/app/build/
+      - static_files_smartsfilter:/app/dist/
     networks:
       - smartsfilter_net
 
