@@ -14,7 +14,7 @@ services:
 
   smartsfilter_ui:
     build:
-      context: https://github.com/unmtransinfo/SmartFilter-UI.git#092425
+      context: https://github.com/unmtransinfo/SmartFilter-UI.git#main
     environment:
       - NODE_OPTIONS=--openssl-legacy-provider
     env_file:
