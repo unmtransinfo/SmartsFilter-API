@@ -1,28 +1,44 @@
 # SmartFilter-API
-API code for SmartsFilter Flasgger Docs.
-## Requirements
+API code for SmartFilter with Flasgger Docs.
 
-* Docker
-* Docker Compose
+## Requirements
+* Docker  
+* Docker Compose  
 
 ## Documentation
-The /apidocs/ page will provide you with detailed information on every API call available.
+The `/apidocs/` page provides detailed information on every API call available.
 
-See links below for documentation on the production and local version of the API:
-* Production: https://chiltepin.health.unm.edu/smartsfilter/apidocs/
-* Local: http://localhost:8000/apidocs/
+* **Production:** [https://chiltepin.health.unm.edu/smartsfilter/apidocs/](https://chiltepin.health.unm.edu/smartsfilter/apidocs/)  
+* **Local:** [http://localhost:8000/apidocs/](http://localhost:8000/apidocs/)  
+
+**UI Repository:** [SmartFilter-UI](https://github.com/unmtransinfo/SmartFilter-UI/)
+
+---
+
+## Screenshots
+Below are sample screenshots from the API UI:  
+
+![API Home](/docs/images/api_home.png)  
+![Get MatchCounts](/docs/images/get_matchcounts.png)  
+![Filter PAINS](/docs/images/filter_pains.png)  
+
+> Place your screenshots in `/docs/images/` as `.png` files.  
+
+---
 
 ## Setup (Development)
-1. git clone https://github.com/yourusername/SmartFilter-API.git
-2. cd SmartFilter-API
-3. Copy `.env.example` to `.env` (in the `/app` folder)
-4. Edit the `.env` credentials as needed
-5. Run `docker-compose --env-file ./app/.env -f compose-development.yml up --build`
-6. A full set of Swagger documentation can be found at http://localhost:8000/apidocs
+1. `git clone https://github.com/yourusername/SmartFilter-API.git`  
+2. `cd SmartFilter-API`  
+3. Copy `.env.example` to `.env` (in the `/app` folder)  
+4. Edit the `.env` credentials as needed  
+5. Run:
+   ```bash
+   docker-compose -f compose-development.yml up --build
+
 
 ## Setup (Production on Chiltepin)
 1. Copy `.env.example` to `.env`
-2. Fill in/edit the `.env` credentials as needed
+2. Fill in/edit the `.env` credentials as needed 
 3. Update apache2 config:
    - Create a new file for apache2 config: `/etc/apache2/sites-available/smartsfilterapi.conf`
    - Add the following line to `/etc/apache2/apache2.conf`:
@@ -32,8 +48,8 @@ See links below for documentation on the production and local version of the API
    - Update the apache2 virtual config file: `/etc/apache2/sites-enabled/000-default.conf`
    - Run config check: `sudo apachectl configtest`
    - (If config check passed) reload apache: `sudo systemctl reload apache2`
-4. (If server was previously up): `docker-compose --env-file app/.env -f compose-production.yml down`
-5. Run `docker-compose --env-file app/.env -f compose-production.yml up --build -d`
+4. (If server was previously up): `docker-compose -f compose-production.yml down`
+5. Run `docker-compose -f compose-production.yml up --build -d`
 
 ## API Endpoints
 1. /get_matchcounts
@@ -80,6 +96,23 @@ Returns the filtered molecules and which PAINS patterns were matched.
 Query Parameters:
 * SMILES: List of SMILES strings to evaluate.
 
+## Libraries Used
+
+This API was developed with the help of the [rdkit-tools](https://github.com/jeremyjyang/rdkit-tools?tab=readme-ov-file#smarts) library for SMARTS pattern handling and molecular analysis.
+
+**Thank you to the rdkit-tools developers** for providing this powerful library.
+
+---
+
+## Author / Support
+
+**Author / Support:** Jeremy Yang, Jack Ringer  
+**Developer:** Bivek Sharma Panthi
+
+---
+
 ## Acknowledgment
-Originally forked from the Badapple2-API repo:
-[https://github.com/unmtransinfo/Badapple2-API](https://github.com/unmtransinfo/Badapple2-API)# SmartFilter-API
+
+This API was developed based on concepts and architecture inspired by the Badapple2-API repository:  
+[https://github.com/unmtransinfo/Badapple2-API](https://github.com/unmtransinfo/Badapple2-API)
+
