@@ -18,11 +18,7 @@ The `/apidocs/` page provides detailed information on every API call available.
 ## Screenshots
 Below are sample screenshots from the API UI:  
 
-![API Home](/docs/images/api_home.png)  
-![Get MatchCounts](/docs/images/get_matchcounts.png)  
-![Filter PAINS](/docs/images/filter_pains.png)  
-
-> Place your screenshots in `/docs/images/` as `.png` files.  
+![API Home](/docs/images/api_docs.png)   
 
 ---
 
