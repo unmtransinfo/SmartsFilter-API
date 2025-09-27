@@ -16,7 +16,6 @@ The `/apidocs/` page provides detailed information on every API call available.
 ---
 
 ## Screenshots
-Below are sample screenshots from the API UI:  
 
 ![API Home](/docs/images/api_docs.png)   
 
