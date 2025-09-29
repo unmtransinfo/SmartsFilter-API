@@ -1,12 +1,178 @@
 info:
   title: API for SMARTS FILTER
   description: |
-    Endpoints for SMARTS‑based filtering.
+    Endpoints for SMARTS-based filtering. 
+    - GET requests support up to 50 SMILES for testing purposes
+    - POST requests support large datasets (10,000+ SMILES)
   version: 1
 components:
   schemas:
-    painsentry:
+    SMILESRequest:
       type: object
+      properties:
+        SMILES:
+          type: array
+          items:
+            type: string
+          description: List of compound SMILES
+        Smile_Names:
+          type: array
+          items:
+            type: string
+          description: List of compound names
+        smarts:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: SMARTS pattern(s)
+        Smart_Names:
+          type: array
+          items:
+            type: string
+          description: List of SMARTS names
+        ExcludeMolProp:
+          type: boolean
+          description: Exclude Molecular Properties
+        isomericSmiles:
+          type: boolean
+          description: Return isomeric SMILES
+        kekuleSmiles:
+          type: boolean
+          description: Return kekule SMILES
+        unique_set:
+          type: boolean
+          description: Unique Set-of-Atoms Match Counts
+        only_rows:
+          type: boolean
+          description: Only include rows with at least one match
+        strict_error:
+          type: boolean
+          description: Raise error if any SMARTS cannot be parsed
+        exclude_mol_props:
+          type: boolean
+          description: Exclude molecular properties
+        strict:
+          type: boolean
+          description: Strict mode
+        usa:
+          type: boolean
+          description: USA mode
+        nonzero_rows:
+          type: boolean
+          description: Non-zero rows only
+
+    PAINSResult:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              smiles:
+                type: string
+              failed:
+                type: boolean
+              reasons:
+                type: array
+                items:
+                  type: string
+              highlight_atoms:
+                type: array
+                items:
+                  type: array
+                  items:
+                    type: integer
+        all_pains_filters:
+          type: array
+          items:
+            type: string
+        invalid:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              smiles:
+                type: string
+
+    MatchCountResult:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+          smiles:
+            type: string
+          n_matches:
+            type: integer
+
+    MatchFilterResult:
+      type: object
+      properties:
+        passed:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              smiles:
+                type: string
+              failed:
+                type: boolean
+        failed:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              smiles:
+                type: string
+              failed:
+                type: boolean
+              reason:
+                type: string
+              highlight_atoms:
+                type: array
+                items:
+                  type: array
+                  items:
+                    type: integer
+
+    MultiMatchCountResult:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+          smiles:
+            type: string
+          matches:
+            type: array
+            items:
+              type: object
+              properties:
+                smarts:
+                  type: string
+                name:
+                  type: string
+                count:
+                  type: integer
+                highlight_atoms:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: integer
 
   parameters:
     SMILESList:
@@ -16,7 +182,7 @@ components:
       items:
         type: string
       required: true
-      description: List of compound SMILES
+      description: List of compound SMILES (max 50 for GET requests)
 
     SmileName:
       name: Smile_Names
@@ -94,6 +260,24 @@ components:
   responses:
     ResponseCode400:
       description: Malformed request error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    ResponseCode413:
+      description: Request too large (GET requests limited to 50 SMILES)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "GET requests are limited to 50 SMILES for testing purposes"
 
 paths:
   /smarts_filter/get_filterpains:
@@ -173,6 +357,46 @@ paths:
               }
         400:
           $ref: '#/components/responses/ResponseCode400'
+    
+    post:
+      tags:
+        - SMARTS FILTER
+      summary: Get the SMILES strings with their PAINS test result (Production - supports 10,000+ SMILES).
+      description: Checks if the input SMILES have passed or failed the PAINS Test. Supports large datasets via JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - SMILES
+              properties:
+                SMILES:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound SMILES
+                  example: ["CCO", "CCC", "c1ccccc1"]
+                Smile_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound names
+                  example: ["ethanol", "propane", "benzene"]
+                ExcludeMolProp:
+                  type: boolean
+                  description: Exclude Molecular Properties
+                  default: false
+      responses:
+        200:
+          description: A JSON object containing all compounds and their associated tests either passed or failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PAINSResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
 
   /smarts_filter/get_matchcounts:
     get:
@@ -211,6 +435,63 @@ paths:
                   "smiles": "CCCCCCCCOc1ccc(C=C2C(=O)NC(=O)NC2=O)cc1"
                 }
               ]}
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+
+    post:
+      tags:
+        - SMARTS FILTER
+      summary: Get match counts of SMARTS patterns per SMILES (Production - supports 10,000+ SMILES).
+      description: Checks SMARTS pattern match counts for each input SMILES. Supports large datasets via JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - SMILES
+                - smarts
+              properties:
+                SMILES:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound SMILES
+                  example: ["CCO", "CCC", "c1ccccc1"]
+                Smile_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound names
+                  example: ["ethanol", "propane", "benzene"]
+                smarts:
+                  type: string
+                  description: SMARTS pattern
+                  example: "[OH]"
+                Smart_Names:
+                  type: string
+                  description: SMARTS name
+                  example: "hydroxyl"
+                usa:
+                  type: boolean
+                  description: Unique Set-of-Atoms Match Counts
+                  default: false
+                ExcludeMolProp:
+                  type: boolean
+                  description: Exclude Molecular Properties
+                  default: false
+                nonzero_rows:
+                  type: boolean
+                  description: Only include rows with at least one match
+                  default: false
+      responses:
+        200:
+          description: Match counts for each SMILES.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchCountResult'
         400:
           $ref: '#/components/responses/ResponseCode400'
 
@@ -294,6 +575,55 @@ paths:
                     }
                   ]
                 }
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+
+    post:
+      tags:
+        - SMARTS FILTER
+      summary: Get matched SMILES strings with optional names (Production - supports 10,000+ SMILES).
+      description: Returns matched SMILES (and names if provided) that pass SMARTS filtering. Supports large datasets via JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - SMILES
+                - smarts
+              properties:
+                SMILES:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound SMILES
+                  example: ["CCO", "CCC", "c1ccccc1"]
+                Smile_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound names
+                  example: ["ethanol", "propane", "benzene"]
+                smarts:
+                  type: string
+                  description: SMARTS pattern
+                  example: "[OH]"
+                Smart_Names:
+                  type: string
+                  description: SMARTS name
+                  example: "hydroxyl"
+                exclude_mol_props:
+                  type: boolean
+                  description: Exclude molecular properties
+                  default: false
+      responses:
+        200:
+          description: List of each SMILES and names matching the SMARTS.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchFilterResult'
         400:
           $ref: '#/components/responses/ResponseCode400'
 
@@ -452,6 +782,80 @@ paths:
         400:
           $ref: '#/components/responses/ResponseCode400'
 
+    post:
+      tags:
+        - SMARTS FILTER
+      summary: Get SMARTS pattern match counts per SMILES (Production - supports 10,000+ SMILES).
+      description: For each SMILES, compute how many SMARTS patterns match (multi-match counting). Supports large datasets via JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - SMILES
+                - smarts
+                - Smart_Names
+              properties:
+                SMILES:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound SMILES
+                  example: ["CCO", "CCC", "c1ccccc1"]
+                Smile_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound names
+                  example: ["ethanol", "propane", "benzene"]
+                smarts:
+                  type: array
+                  items:
+                    type: string
+                  description: List of SMARTS patterns
+                  example: ["[OH]", "[CH3]"]
+                Smart_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of SMARTS names
+                  example: ["hydroxyl", "methyl"]
+                isomericSmiles:
+                  type: boolean
+                  description: Return isomeric SMILES
+                  default: false
+                kekuleSmiles:
+                  type: boolean
+                  description: Return kekule SMILES
+                  default: false
+                unique_set:
+                  type: boolean
+                  description: Unique Set-of-Atoms Match Counts
+                  default: false
+                strict_error:
+                  type: boolean
+                  description: Raise error if any SMARTS cannot be parsed
+                  default: false
+                only_rows:
+                  type: boolean
+                  description: Only include rows with at least one match
+                  default: false
+                ExcludeMolProp:
+                  type: boolean
+                  description: Exclude Molecular Properties
+                  default: false
+      responses:
+        200:
+          description: Match counts per compound.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultiMatchCountResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+
   /smarts_filter/get_multi_matchfilter:
     get:
       tags:
@@ -536,3 +940,60 @@ paths:
         400:
           $ref: '#/components/responses/ResponseCode400'
 
+    post:
+      tags:
+        - SMARTS FILTER
+      summary: Get matched SMILES (multiple SMARTS) (Production - supports 10,000+ SMILES).
+      description: Returns SMILES strings that match any of the given SMARTS patterns, with names if provided. Supports large datasets via JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - SMILES
+                - smarts
+                - Smart_Names
+              properties:
+                SMILES:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound SMILES
+                  example: ["CCO", "CCC", "c1ccccc1"]
+                Smile_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound names
+                  example: ["ethanol", "propane", "benzene"]
+                smarts:
+                  type: array
+                  items:
+                    type: string
+                  description: List of SMARTS patterns
+                  example: ["[OH]", "[CH3]"]
+                Smart_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of SMARTS names
+                  example: ["hydroxyl", "methyl"]
+                strict:
+                  type: boolean
+                  description: Strict mode
+                  default: false
+                exclude_mol_props:
+                  type: boolean
+                  description: Exclude molecular properties
+                  default: false
+      responses:
+        200:
+          description: Matched SMILES with optional names.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchFilterResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'

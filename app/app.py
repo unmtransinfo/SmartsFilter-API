@@ -6,20 +6,25 @@ from flasgger import LazyJSONEncoder, Swagger
 from dotenv import load_dotenv
 from blueprints.version import register_routes
 
+
 def _load_api_spec() -> dict:
     """Load Swagger YAML spec."""
     with open("swagger_template.yml", "r") as file:
         return yaml.safe_load(file)
-def _get_updated_paths(paths_dict: dict, path_prefix: str, in_production: bool):
+
+
+def _get_updated_paths(paths_dict: dict, version_prefix: str, in_production: bool, url_prefix: str = ""):
     updated_paths = {}
     for path, definition in paths_dict.items():
         if in_production:
-            # Always ensure prefix starts with "/" and avoid double slashes
-            new_path = f"{path_prefix.rstrip('/')}{path}"
-            updated_paths[new_path] = definition
+            # Production: URL_PREFIX + version prefix + path
+            new_path = f"/{url_prefix.strip('/')}{version_prefix}{path}"
         else:
-            updated_paths[path] = definition
+            # Dev: version prefix + path
+            new_path = f"{version_prefix}{path}"
+        updated_paths[new_path] = definition
     return updated_paths
+
 
 def create_app():
     app = Flask(__name__)
@@ -38,7 +43,7 @@ def create_app():
     IN_PROD = app.config.get("FLASK_ENV", "") == "production"
     print("IN_PROD value:", IN_PROD)
 
-    # Configure Flasgger with ui_params to match template
+    # Configure Flasgger
     swagger_config = {
         "headers": [],
         "specs": [
@@ -55,18 +60,17 @@ def create_app():
         },
         "auth": {},
     }
-    # Update Swagger template for URL prefix
+
+    # Update Swagger template paths so docs match real routes
     swagger_template["swaggerUiPrefix"] = f"/{URL_PREFIX}" if IN_PROD else ""
-    path_prefix = (
-        f"/{URL_PREFIX}{VERSION_URL_PREFIX}" if IN_PROD else VERSION_URL_PREFIX
-    )
     swagger_template["paths"] = _get_updated_paths(
-        swagger_template["paths"], path_prefix, IN_PROD
+        swagger_template["paths"], VERSION_URL_PREFIX, IN_PROD, URL_PREFIX
     )
+
     # Setup Swagger
     swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
-    # Register your API routes
+    # Register routes
     register_routes(app, IN_PROD, VERSION_URL_PREFIX)
 
     return app
@@ -80,4 +84,3 @@ if __name__ == "__main__":
         port=app.config.get("APP_PORT"),
         debug=True
     )
-
