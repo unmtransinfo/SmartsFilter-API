@@ -22,7 +22,7 @@ The `/apidocs/` page provides detailed information on every API call available.
 ---
 
 ## Setup (Development)
-1. `git clone https://github.com/yourusername/SmartFilter-API.git`  
+1. `git clone https://github.com/bivek2003/SmartFilter-API.git`  
 2. `cd SmartFilter-API`  
 3. Copy `.env.example` to `.env` (in the `/app` folder)  
 4. Edit the `.env` credentials as needed  
