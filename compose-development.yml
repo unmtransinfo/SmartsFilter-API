@@ -4,8 +4,9 @@ services:
       context: app
       dockerfile: Dockerfile
     env_file: 
-      - ./app/.env
+      - .env
     environment:
       - APP_PORT=${APP_PORT}
     ports: 
       - '${APP_PORT}:${APP_PORT}'
+    network_mode: "host"

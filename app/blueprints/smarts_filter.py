@@ -92,13 +92,59 @@ params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_C)
 catalog = FilterCatalog.FilterCatalog(params)
 
 
-@smarts_filter.route('/get_filterpains', methods=['GET'])
+def process_request_data(request, is_get_request=True):
+    """Helper function to process request data from both GET and POST requests"""
+    if is_get_request:
+        # GET request - use query parameters
+        smiles_list = process_smiles_input(request, "SMILES", 50)  # Limited to 50 for GET
+        names_list = process_smiles_input(request, "Smile_Names", 50)
+        return smiles_list, names_list
+    else:
+        # POST request - use JSON body
+        json_data = request.get_json()
+        if not json_data:
+            return None, None
+        
+        smiles_list = json_data.get("SMILES", [])
+        names_list = json_data.get("Smile_Names", [])
+        
+        if not isinstance(smiles_list, list):
+            return None, None
+            
+        return smiles_list, names_list
+
+
+def get_request_params(request, is_get_request=True):
+    """Helper function to get parameters from both GET and POST requests"""
+    if is_get_request:
+        return request.args
+    else:
+        json_data = request.get_json()
+        return json_data if json_data else {}
+
+
+def str_to_bool(value):
+    if isinstance(value, bool):
+        return value
+    if not value:
+        return False
+    return value.lower() in ['true', '1', 'yes', 'y']
+
+
+@smarts_filter.route('/get_filterpains', methods=['GET', 'POST'])
 def get_filterpains():
-    smiles_list = process_smiles_input(request, "SMILES", 1000)
-    names_list = process_smiles_input(request, "Smile_Names", 1000)
+    is_get_request = request.method == 'GET'
+    smiles_list, names_list = process_request_data(request, is_get_request)
+    
+    if smiles_list is None:
+        return jsonify({"error": "Invalid request format"}), 400
 
     if not isinstance(smiles_list, list) or not smiles_list:
         return jsonify({"error": "No SMILES provided"}), 400
+
+    # Limit check for GET requests
+    if is_get_request and len(smiles_list) > 50:
+        return jsonify({"error": "GET requests are limited to 50 SMILES for testing purposes"}), 400
 
     if names_list and len(names_list) != len(smiles_list):
         return jsonify({
@@ -166,13 +212,21 @@ def get_filterpains():
     }), 200
 
 
-@smarts_filter.route('/get_matchcounts', methods=['GET'])
+@smarts_filter.route('/get_matchcounts', methods=['GET', 'POST'])
 def get_matchcounts():
-    smiles_list = process_smiles_input(request, "SMILES", 1000)
-    names_list = process_smiles_input(request, "Smile_Names", 1000)
+    is_get_request = request.method == 'GET'
+    smiles_list, names_list = process_request_data(request, is_get_request)
+    params = get_request_params(request, is_get_request)
+    
+    if smiles_list is None:
+        return jsonify({"error": "Invalid request format"}), 400
 
     if not isinstance(smiles_list, list) or not smiles_list:
         return jsonify({"error": "No SMILES provided"}), 400
+
+    # Limit check for GET requests
+    if is_get_request and len(smiles_list) > 50:
+        return jsonify({"error": "GET requests are limited to 50 SMILES for testing purposes"}), 400
 
     if names_list and len(names_list) != len(smiles_list):
         return jsonify({"error": f"'SMILES' and 'Names' must be the same length: got {len(smiles_list)} and {len(names_list)}"}), 400
@@ -180,13 +234,25 @@ def get_matchcounts():
     if not names_list:
         names_list = smiles_list
 
-    smart = process_smarts_input(request)[0]
+    if is_get_request:
+        smart = process_smarts_input(request)[0]
+    else:
+        smart = params.get("smarts", "")
+        if isinstance(smart, list) and smart:
+            smart = smart[0]
+    
     if not smart:
         return jsonify({"error": "Smarts pattern is required"}), 400
 
-    exclude_mol_props = request.args.get("ExcludeMolProp", type=bool, default=False)
-    usa = request.args.get("usa", type=bool, default=False)
-    non_zero_rows = request.args.get("nonzero_rows", type=bool, default=False)
+    exclude_mol_props = params.get("ExcludeMolProp", False)
+    usa = params.get("usa", False)
+    nonzero_rows = params.get("nonzero_rows", False)
+    
+    if is_get_request:
+        exclude_mol_props = request.args.get("ExcludeMolProp", type=bool, default=False)
+        usa = request.args.get("usa", type=bool, default=False)
+        nonzero_rows = request.args.get("nonzero_rows", type=bool, default=False)
+    
     parsed = []
     for smiles, name in zip(smiles_list, names_list):
         mol = Chem.MolFromSmiles(smiles)
@@ -205,19 +271,37 @@ def get_matchcounts():
         molReader=parsed,
         molWriter=collector,
         exclude_mol_props=exclude_mol_props,
-        nonzero_rows=non_zero_rows,
+        nonzero_rows=nonzero_rows,
     )
 
     return jsonify(collector.results), 200
 
 
-@smarts_filter.route('/get_matchfilter', methods=['GET'])
+@smarts_filter.route('/get_matchfilter', methods=['GET', 'POST'])
 def get_matchfilter():
-    smiles_list = process_smiles_input(request, "SMILES", 1000)
-    names_list = process_smiles_input(request, "Smile_Names", 1000)
-    smart = process_smarts_input(request)[0]
-    smart_name = request.args.get("Smart_Names", smart)
-    exclude_mol_props = request.args.get("exclude_mol_props", type=bool, default=False)
+    is_get_request = request.method == 'GET'
+    smiles_list, names_list = process_request_data(request, is_get_request)
+    params = get_request_params(request, is_get_request)
+    
+    if smiles_list is None:
+        return jsonify({"error": "Invalid request format"}), 400
+
+    # Limit check for GET requests
+    if is_get_request and len(smiles_list) > 50:
+        return jsonify({"error": "GET requests are limited to 50 SMILES for testing purposes"}), 400
+
+    if is_get_request:
+        smart = process_smarts_input(request)[0]
+    else:
+        smart = params.get("smarts", "")
+        if isinstance(smart, list) and smart:
+            smart = smart[0]
+    
+    smart_name = params.get("Smart_Names", smart)
+    exclude_mol_props = params.get("exclude_mol_props", False)
+    
+    if is_get_request:
+        exclude_mol_props = request.args.get("exclude_mol_props", type=bool, default=False)
 
     if len(smiles_list) != len(names_list):
         return jsonify({"error": "SMILES and Names must be same length"}), 400
@@ -266,20 +350,22 @@ def get_matchfilter():
     failed.extend(invalid)
     return jsonify({"passed": passed, "failed": failed}), 200
 
-def str_to_bool(value):
-    if isinstance(value, bool):
-        return value
-    if not value:
-        return False
-    return value.lower() in ['true', '1', 'yes', 'y']
 
-@smarts_filter.route('/get_multi_matchcounts', methods=['GET'])
+@smarts_filter.route('/get_multi_matchcounts', methods=['GET', 'POST'])
 def get_multi_matchcounts():
-    smiles_list = process_smiles_input(request, "SMILES", 1000)
-    names_list = process_smiles_input(request, "Smile_Names", 1000)
+    is_get_request = request.method == 'GET'
+    smiles_list, names_list = process_request_data(request, is_get_request)
+    params = get_request_params(request, is_get_request)
+    
+    if smiles_list is None:
+        return jsonify({"error": "Invalid request format"}), 400
 
     if not isinstance(smiles_list, list) or not smiles_list:
         return jsonify({"error": "No SMILES provided"}), 400
+
+    # Limit check for GET requests
+    if is_get_request and len(smiles_list) > 50:
+        return jsonify({"error": "GET requests are limited to 50 SMILES for testing purposes"}), 400
 
     if names_list and len(names_list) != len(smiles_list):
         return jsonify({
@@ -290,10 +376,16 @@ def get_multi_matchcounts():
         names_list = smiles_list
 
     try:
-        smarts_list = request.args.getlist("smarts")
-        smart_names = request.args.getlist("Smart_Names")
-        isomeric_smiles = str_to_bool(request.args.get("isomericSmiles", 'false'))
-        kekule_smiles = str_to_bool(request.args.get("kekuleSmiles", 'false'))
+        if is_get_request:
+            smarts_list = request.args.getlist("smarts")
+            smart_names = request.args.getlist("Smart_Names")
+            isomeric_smiles = str_to_bool(request.args.get("isomericSmiles", 'false'))
+            kekule_smiles = str_to_bool(request.args.get("kekuleSmiles", 'false'))
+        else:
+            smarts_list = params.get("smarts", [])
+            smart_names = params.get("Smart_Names", [])
+            isomeric_smiles = str_to_bool(params.get("isomericSmiles", 'false'))
+            kekule_smiles = str_to_bool(params.get("kekuleSmiles", 'false'))
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -313,10 +405,10 @@ def get_multi_matchcounts():
             temp_smarts_file.write(f"{pattern} {name}\n")
         temp_smarts_file_path = temp_smarts_file.name
 
-    exclude_mol_props = str_to_bool(request.args.get("ExcludeMolProp", 'false'))
-    usa = str_to_bool(request.args.get("unique_set", 'false'))
-    raiseError = str_to_bool(request.args.get("strict_error", 'false'))
-    nonzero_rows = str_to_bool(request.args.get('only_rows', 'false'))
+    exclude_mol_props = str_to_bool(params.get("ExcludeMolProp", 'false'))
+    usa = str_to_bool(params.get("unique_set", 'false'))
+    raiseError = str_to_bool(params.get("strict_error", 'false'))
+    nonzero_rows = str_to_bool(params.get('only_rows', 'false'))
 
     parsed = []
     name_to_mol = {}
@@ -376,13 +468,21 @@ def get_multi_matchcounts():
     return jsonify(results), 200
 
 
-@smarts_filter.route('/get_multi_matchfilter', methods=['GET'])
+@smarts_filter.route('/get_multi_matchfilter', methods=['GET', 'POST'])
 def get_multi_matchfilter():
-    smiles_list = process_smiles_input(request, "SMILES", 1000)
-    names_list = process_smiles_input(request, "Smile_Names", 1000)
+    is_get_request = request.method == 'GET'
+    smiles_list, names_list = process_request_data(request, is_get_request)
+    params = get_request_params(request, is_get_request)
+    
+    if smiles_list is None:
+        return jsonify({"error": "Invalid request format"}), 400
 
     if not isinstance(smiles_list, list) or not smiles_list:
         return jsonify({"error": "No SMILES provided"}), 400
+
+    # Limit check for GET requests
+    if is_get_request and len(smiles_list) > 50:
+        return jsonify({"error": "GET requests are limited to 50 SMILES for testing purposes"}), 400
 
     if names_list and len(names_list) != len(smiles_list):
         return jsonify({"error": "'SMILES' and 'Names' must be the same length"}), 400
@@ -390,8 +490,12 @@ def get_multi_matchfilter():
     if not names_list:
         names_list = smiles_list
 
-    smarts_list = request.args.getlist("smarts")
-    smart_names = request.args.getlist("Smart_Names")
+    if is_get_request:
+        smarts_list = request.args.getlist("smarts")
+        smart_names = request.args.getlist("Smart_Names")
+    else:
+        smarts_list = params.get("smarts", [])
+        smart_names = params.get("Smart_Names", [])
 
     if not smarts_list or not smart_names:
         return jsonify({"error": "Missing SMARTS or Smart_Names"}), 400
@@ -399,8 +503,12 @@ def get_multi_matchfilter():
     if len(smarts_list) != len(smart_names):
         return jsonify({"error": "'Smart_Names' and 'smarts' must be the same length"}), 400
 
-    exclude_mol_props = request.args.get("exclude_mol_props", type=bool, default=False)
-    strict = request.args.get("strict", type=bool, default=False)
+    exclude_mol_props = params.get("exclude_mol_props", False)
+    strict = params.get("strict", False)
+    
+    if is_get_request:
+        exclude_mol_props = request.args.get("exclude_mol_props", type=bool, default=False)
+        strict = request.args.get("strict", type=bool, default=False)
 
     # Write SMARTS file for MatchFilterMulti
     with tempfile.NamedTemporaryFile(mode="w+", delete=False) as temp_smarts_file:

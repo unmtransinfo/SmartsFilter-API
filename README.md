@@ -22,9 +22,9 @@ The `/apidocs/` page provides detailed information on every API call available.
 ---
 
 ## Setup (Development)
-1. `git clone https://github.com/yourusername/SmartFilter-API.git`  
+1. `git clone https://github.com/bivek2003/SmartFilter-API.git`  
 2. `cd SmartFilter-API`  
-3. Copy `.env.example` to `.env` (in the `/app` folder)  
+3. Copy `.env.dev..example` to `.env` (in the `./` folder)  
 4. Edit the `.env` credentials as needed  
 5. Run:
    ```bash
@@ -32,7 +32,7 @@ The `/apidocs/` page provides detailed information on every API call available.
 
 
 ## Setup (Production on Chiltepin)
-1. Copy `.env.example` to `.env`
+1. Copy `.env.prod.example` to `.env`
 2. Fill in/edit the `.env` credentials as needed 
 3. Update apache2 config:
    - Create a new file for apache2 config: `/etc/apache2/sites-available/smartsfilterapi.conf`
