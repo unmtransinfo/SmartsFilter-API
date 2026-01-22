@@ -250,6 +250,13 @@ components:
       required: false
       description: Only include rows (i.e., molecules) with at least one match in output
 
+    file_name:
+      name: file_name
+      in: query
+      type: string
+      required: true
+      description: Name of the uploaded file
+
     strict:
       name: strict_error
       in: query
@@ -260,6 +267,16 @@ components:
   responses:
     ResponseCode400:
       description: Malformed request error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    ResponseCode500:
+      description: Internal server error
       content:
         application/json:
           schema:
@@ -280,6 +297,28 @@ components:
                 example: "GET requests are limited to 50 SMILES for testing purposes"
 
 paths:
+  /load_smarts/load:
+    get:
+      tags:
+        - SMARTS FILTER
+      summary: Load SMARTS patterns from external source.
+      description: Fetches SMARTS patterns from a predefined external URL.
+      parameters:
+        - ref: '#/components/parameters/file_name'
+      responses:
+        200:
+          description: Successfully loaded SMARTS patterns.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "SMARTS patterns loaded successfully."
+        500:
+          $ref: '#/components/responses/ResponseCode500'
+
   /smarts_filter/get_filterpains:
     get:
       tags:
