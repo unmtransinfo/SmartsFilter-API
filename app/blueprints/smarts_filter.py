@@ -212,6 +212,136 @@ def get_filterpains():
     }), 200
 
 
+# Initialize other catalogs
+from app.utils.filter_loader import CatalogLoader
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SMARTS_DIR = os.path.join(BASE_DIR, "data", "smarts")
+
+# Load Blake
+blake_files = [os.path.join(SMARTS_DIR, "lint_blake-v2.sma")]
+blake_catalog = CatalogLoader.get_catalog("Blake", blake_files)
+
+# Load Oprea
+oprea_files = [os.path.join(SMARTS_DIR, "oprea_filters.sma")]
+oprea_catalog = CatalogLoader.get_catalog("Oprea", oprea_files)
+
+# Load Alarm
+alarm_files = [os.path.join(SMARTS_DIR, "alarmnmr.sma")]
+alarm_catalog = CatalogLoader.get_catalog("Alarm", alarm_files)
+
+# Load Glaxo
+glaxo_files = [
+    os.path.join(SMARTS_DIR, "glaxo_acids.sma"),
+    os.path.join(SMARTS_DIR, "glaxo_bases.sma"),
+    os.path.join(SMARTS_DIR, "glaxo_electrophile.sma"),
+    os.path.join(SMARTS_DIR, "glaxo_nucleophile.sma"),
+    os.path.join(SMARTS_DIR, "glaxo_reactive.sma"),
+    os.path.join(SMARTS_DIR, "glaxo_unsuitable_leads.sma"),
+    os.path.join(SMARTS_DIR, "glaxo_unsuitable_natprod.sma"),
+]
+glaxo_catalog = CatalogLoader.get_catalog("Glaxo", glaxo_files)
+
+
+def _process_filter_request(request, catalog, filter_name):
+    is_get_request = request.method == 'GET'
+    smiles_list, names_list = process_request_data(request, is_get_request)
+    
+    if smiles_list is None:
+        return jsonify({"error": "Invalid request format"}), 400
+
+    if not isinstance(smiles_list, list) or not smiles_list:
+        return jsonify({"error": "No SMILES provided"}), 400
+
+    if is_get_request and len(smiles_list) > 50:
+        return jsonify({"error": "GET requests are limited to 50 SMILES"}), 400
+
+    if names_list and len(names_list) != len(smiles_list):
+        names_list = smiles_list # Fallback
+
+    if not names_list:
+        names_list = smiles_list
+
+    parsed = []
+    invalid = []
+
+    for smiles, name in zip(smiles_list, names_list):
+        mol = Chem.MolFromSmiles(smiles)
+        if mol:
+            mol.SetProp("_Name", name)
+            parsed.append((name, smiles, mol))
+        else:
+            invalid.append({"name": name, "smiles": smiles})
+
+    if not parsed:
+        return jsonify({"error": "No valid molecules found"}), 400
+
+    # Get all filter names for reference
+    all_smarts_filter = []
+    num_entries = catalog.GetNumEntries()
+    for i in range(num_entries):
+       entry = catalog.GetEntry(i)
+       all_smarts_filter.append(entry.GetDescription())
+
+    results = []
+
+    for name, smiles, mol in parsed:
+        reasons = []
+        highlight_atom_sets = []
+
+        try:
+            matched_entries = catalog.GetMatches(mol)
+            for entry in matched_entries:
+                desc = entry.GetDescription()
+                reasons.append(desc)
+                
+                # Get atom highlights
+                try:
+                    matches = entry.GetFilterMatches(mol)
+                    for match in matches:
+                        atom_indices = [atom_idx for _, atom_idx in match.atomPairs]
+                        if atom_indices:
+                            highlight_atom_sets.append(atom_indices)
+                except Exception as match_err:
+                     print(f"[Match Error] {desc} on '{name}': {match_err}")
+
+        except Exception as e:
+            print(f"Error matching {filter_name} on {name}: {e}")
+
+        results.append({
+            "name": name,
+            "smiles": smiles,
+            "failed": bool(reasons),
+            "reasons": reasons,
+            "highlight_atoms": highlight_atom_sets
+        })
+
+    return jsonify({
+        "results": results,
+        "all_smarts_filter": all_smarts_filter,
+        "invalid": invalid
+    }), 200
+
+
+@smarts_filter.route('/get_filterblake', methods=['GET', 'POST'])
+def get_filterblake():
+    return _process_filter_request(request, blake_catalog, "Blake")
+
+@smarts_filter.route('/get_filterglaxo', methods=['GET', 'POST'])
+def get_filterglaxo():
+    return _process_filter_request(request, glaxo_catalog, "Glaxo")
+
+@smarts_filter.route('/get_filteroprea', methods=['GET', 'POST'])
+def get_filteroprea():
+    return _process_filter_request(request, oprea_catalog, "Oprea")
+
+@smarts_filter.route('/get_filteralarm', methods=['GET', 'POST'])
+def get_filteralarm():
+    return _process_filter_request(request, alarm_catalog, "Alarm")
+
+
+
 @smarts_filter.route('/get_matchcounts', methods=['GET', 'POST'])
 def get_matchcounts():
     is_get_request = request.method == 'GET'
