@@ -63,7 +63,7 @@ class SmartsFile:
                 continue
 
             rawsmarts = (m2.group(1) or "").strip()
-            name = (m2.group(2) or "").strip()
+            name = (m2.group(2) or "").strip().replace(" ", "_")
 
             try:
                 expanded = self._expand_all_macros(rawsmarts, strict=strict)

@@ -119,6 +119,7 @@ components:
                 type: array
                 items:
                   type: string
+                description: Names of matched patterns (spaces replaced with underscores)
               highlight_atoms:
                 type: array
                 items:
@@ -129,7 +130,7 @@ components:
           type: array
           items:
             type: string
-          description: List of all SMARTS pattern names in the filter catalog
+          description: List of all SMARTS pattern names in the filter catalog (spaces replaced with underscores)
         invalid:
           type: array
           items:
