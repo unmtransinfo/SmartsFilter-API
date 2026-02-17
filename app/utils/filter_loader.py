@@ -1,7 +1,7 @@
 
 import os
 from rdkit.Chem import FilterCatalog
-from app.utils.smarts_parser import SmartsFile
+from utils.smarts_parser import SmartsFile
 
 class CatalogLoader:
     _catalogs = {}
@@ -23,8 +23,9 @@ class CatalogLoader:
 
         print(f"Loading {filter_name} filters from {len(file_paths)} files...")
         
-        # Create a new catalog
+        # Create catalog from empty params, then add entries individually
         params = FilterCatalog.FilterCatalogParams()
+        catalog = FilterCatalog.FilterCatalog(params)
         
         total_patterns = 0
         for path in file_paths:
@@ -41,25 +42,21 @@ class CatalogLoader:
                 # Add valid patterns to catalog
                 for smarts_obj in sf.smartses:
                     if smarts_obj.search is not None:
-                        # RDKit FilterCatalog structure:
-                        # We create a FilterMatchOps.AND entry with a single pattern
-                        # effectively treating each SMARTS as an independent filter rule.
                         matcher = FilterCatalog.SmartsMatcher(
                             smarts_obj.name, 
-                            smarts_obj.search, 
+                            smarts_obj.smarts,  # SMARTS string, not Mol object
                             1, 1
                         )
                         entry = FilterCatalog.FilterCatalogEntry(
                             smarts_obj.name,
                             matcher
                         )
-                        params.AddCatalog(entry)
+                        catalog.AddEntry(entry)
                         total_patterns += 1
                         
             except Exception as e:
                 print(f"Error loading {path}: {e}")
 
-        catalog = FilterCatalog.FilterCatalog(params)
         cls._catalogs[filter_name] = catalog
         print(f"Loaded {total_patterns} patterns for {filter_name}")
         

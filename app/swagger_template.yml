@@ -101,6 +101,45 @@ components:
               smiles:
                 type: string
 
+    SmartsFilterResult:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              smiles:
+                type: string
+              failed:
+                type: boolean
+              reasons:
+                type: array
+                items:
+                  type: string
+              highlight_atoms:
+                type: array
+                items:
+                  type: array
+                  items:
+                    type: integer
+        all_smarts_filter:
+          type: array
+          items:
+            type: string
+          description: List of all SMARTS pattern names in the filter catalog
+        invalid:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              smiles:
+                type: string
+
     MatchCountResult:
       type: array
       items:
@@ -434,6 +473,222 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PAINSResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+
+  /smarts_filter/get_filterblake:
+    get:
+      tags:
+        - SMARTS FILTER
+      summary: Screen SMILES against Blake filter patterns.
+      description: Checks if the input SMILES match any Blake filter SMARTS patterns. Returns pass/fail status with matched pattern names and highlighted atoms.
+      parameters:
+        - $ref: '#/components/parameters/SMILESList'
+        - $ref: '#/components/parameters/SmileName'
+      responses:
+        200:
+          description: Filtering results for each SMILES against Blake patterns.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartsFilterResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+    post:
+      tags:
+        - SMARTS FILTER
+      summary: Screen SMILES against Blake filter patterns (supports large datasets).
+      description: Checks if the input SMILES match any Blake filter SMARTS patterns. Supports large datasets via JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - SMILES
+              properties:
+                SMILES:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound SMILES
+                  example: ["CCO", "c1ccccc1"]
+                Smile_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound names
+                  example: ["ethanol", "benzene"]
+      responses:
+        200:
+          description: Filtering results for each SMILES against Blake patterns.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartsFilterResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+
+  /smarts_filter/get_filterglaxo:
+    get:
+      tags:
+        - SMARTS FILTER
+      summary: Screen SMILES against Glaxo filter patterns.
+      description: Checks if the input SMILES match any Glaxo filter SMARTS patterns (acids, bases, electrophiles, nucleophiles, reactive, unsuitable leads, unsuitable natural products).
+      parameters:
+        - $ref: '#/components/parameters/SMILESList'
+        - $ref: '#/components/parameters/SmileName'
+      responses:
+        200:
+          description: Filtering results for each SMILES against Glaxo patterns.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartsFilterResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+    post:
+      tags:
+        - SMARTS FILTER
+      summary: Screen SMILES against Glaxo filter patterns (supports large datasets).
+      description: Checks if the input SMILES match any Glaxo filter SMARTS patterns. Supports large datasets via JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - SMILES
+              properties:
+                SMILES:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound SMILES
+                  example: ["CCO", "c1ccccc1"]
+                Smile_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound names
+                  example: ["ethanol", "benzene"]
+      responses:
+        200:
+          description: Filtering results for each SMILES against Glaxo patterns.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartsFilterResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+
+  /smarts_filter/get_filteroprea:
+    get:
+      tags:
+        - SMARTS FILTER
+      summary: Screen SMILES against Oprea filter patterns.
+      description: Checks if the input SMILES match any Oprea filter SMARTS patterns.
+      parameters:
+        - $ref: '#/components/parameters/SMILESList'
+        - $ref: '#/components/parameters/SmileName'
+      responses:
+        200:
+          description: Filtering results for each SMILES against Oprea patterns.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartsFilterResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+    post:
+      tags:
+        - SMARTS FILTER
+      summary: Screen SMILES against Oprea filter patterns (supports large datasets).
+      description: Checks if the input SMILES match any Oprea filter SMARTS patterns. Supports large datasets via JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - SMILES
+              properties:
+                SMILES:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound SMILES
+                  example: ["CCO", "c1ccccc1"]
+                Smile_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound names
+                  example: ["ethanol", "benzene"]
+      responses:
+        200:
+          description: Filtering results for each SMILES against Oprea patterns.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartsFilterResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+
+  /smarts_filter/get_filteralarm:
+    get:
+      tags:
+        - SMARTS FILTER
+      summary: Screen SMILES against Alarm NMR filter patterns.
+      description: Checks if the input SMILES match any Alarm NMR filter SMARTS patterns.
+      parameters:
+        - $ref: '#/components/parameters/SMILESList'
+        - $ref: '#/components/parameters/SmileName'
+      responses:
+        200:
+          description: Filtering results for each SMILES against Alarm NMR patterns.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartsFilterResult'
+        400:
+          $ref: '#/components/responses/ResponseCode400'
+    post:
+      tags:
+        - SMARTS FILTER
+      summary: Screen SMILES against Alarm NMR filter patterns (supports large datasets).
+      description: Checks if the input SMILES match any Alarm NMR filter SMARTS patterns. Supports large datasets via JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - SMILES
+              properties:
+                SMILES:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound SMILES
+                  example: ["CCO", "c1ccccc1"]
+                Smile_Names:
+                  type: array
+                  items:
+                    type: string
+                  description: List of compound names
+                  example: ["ethanol", "benzene"]
+      responses:
+        200:
+          description: Filtering results for each SMILES against Alarm NMR patterns.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartsFilterResult'
         400:
           $ref: '#/components/responses/ResponseCode400'
 

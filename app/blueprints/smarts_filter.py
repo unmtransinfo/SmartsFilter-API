@@ -213,7 +213,7 @@ def get_filterpains():
 
 
 # Initialize other catalogs
-from app.utils.filter_loader import CatalogLoader
+from utils.filter_loader import CatalogLoader
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
