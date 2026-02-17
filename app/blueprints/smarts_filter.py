@@ -3,6 +3,7 @@ from rdkit import Chem
 from rdktools import smarts
 from rdkit.Chem import FilterCatalog
 from utils.request_processing import process_smiles_input, process_smarts_input
+from utils.smarts_parser import SmartsFile
 import tempfile
 
 smarts_filter = Blueprint("smarts_filter", __name__, url_prefix="/smarts_filter")
@@ -596,6 +597,113 @@ def get_multi_matchcounts():
         results.append(result)
 
     return jsonify(results), 200
+
+
+@smarts_filter.route('/expert_matchcounts', methods=['POST'])
+def expert_matchcounts():
+    """
+    Expert mode endpoint: accepts raw SMARTS text and SMILES,
+    processes SMARTS through SmartsFile in a single pass (handles comments,
+    define macros, normalization), and uses FilterCatalog for matching
+    (same engine as the checkbox filters) to ensure consistent results.
+    ---
+    tags:
+      - SMARTS FILTER
+    summary: Expert mode SMARTS match counts from raw text.
+    """
+    json_data = request.get_json()
+    if not json_data:
+        return jsonify({"error": "JSON body required"}), 400
+
+    smiles_list = json_data.get("SMILES", [])
+    names_list = json_data.get("Smile_Names", [])
+    smarts_text = json_data.get("smarts_text", "")
+
+    if not isinstance(smiles_list, list) or not smiles_list:
+        return jsonify({"error": "No SMILES provided"}), 400
+
+    if not smarts_text or not smarts_text.strip():
+        return jsonify({"error": "No SMARTS text provided"}), 400
+
+    if not names_list:
+        names_list = smiles_list
+    if len(names_list) != len(smiles_list):
+        names_list = smiles_list
+
+    # Parse SMARTS text using SmartsFile (single pass: comments, macros, normalization)
+    sf = SmartsFile()
+    sf.parse_file(smarts_text, strict=False)
+
+    if not sf.smartses:
+        return jsonify({
+            "error": "No valid SMARTS patterns found",
+            "invalid": [{"line": f["line"], "pattern": f["raw"], "name": f.get("name", ""),
+                         "error": f.get("error", "")} for f in sf.failed_smarts]
+        }), 400
+
+    # Build invalid list for warnings
+    invalid = [{"line": f["line"], "pattern": f["raw"], "name": f.get("name", ""),
+                "error": f.get("error", "")} for f in sf.failed_smarts]
+
+    # Build FilterCatalog from parsed patterns (same as checkbox filter path)
+    cat_params = FilterCatalog.FilterCatalogParams()
+    expert_catalog = FilterCatalog.FilterCatalog(cat_params)
+
+    all_smarts_names = []
+    for s in sf.smartses:
+        if s.search is not None:
+            try:
+                matcher = FilterCatalog.SmartsMatcher(s.name, s.smarts, 1, 1)
+                entry = FilterCatalog.FilterCatalogEntry(s.name, matcher)
+                expert_catalog.AddEntry(entry)
+                all_smarts_names.append(s.name)
+            except Exception:
+                all_smarts_names.append(s.name)
+
+    # Parse SMILES
+    parsed = []
+    for smi, name in zip(smiles_list, names_list):
+        mol = Chem.MolFromSmiles(smi)
+        if mol:
+            mol.SetProp("_Name", name)
+            parsed.append((name, smi, mol))
+
+    if not parsed:
+        return jsonify({"error": "No valid molecules parsed from input"}), 400
+
+    # Match using FilterCatalog (same engine as checkbox filters)
+    results = []
+    for name, smi, mol in parsed:
+        reasons = []
+        highlight_atom_sets = []
+
+        for i in range(expert_catalog.GetNumEntries()):
+            cat_entry = expert_catalog.GetEntryWithIdx(i)
+            desc = cat_entry.GetDescription()
+            if cat_entry.HasFilterMatch(mol):
+                reasons.append(desc)
+                try:
+                    matches = cat_entry.GetFilterMatches(mol)
+                    for match in matches:
+                        atom_indices = [atom_idx for _, atom_idx in match.atomPairs]
+                        if atom_indices:
+                            highlight_atom_sets.append(atom_indices)
+                except Exception:
+                    pass
+
+        results.append({
+            "name": name,
+            "smiles": smi,
+            "failed": bool(reasons),
+            "reasons": reasons,
+            "highlight_atoms": highlight_atom_sets
+        })
+
+    return jsonify({
+        "results": results,
+        "all_smarts_filter": all_smarts_names,
+        "invalid": invalid
+    }), 200
 
 
 @smarts_filter.route('/get_multi_matchfilter', methods=['GET', 'POST'])
