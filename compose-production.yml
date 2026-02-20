@@ -1,53 +1,40 @@
 services:
-  smartsfilter_api:
-    restart: always
-    build:
-      context: ./app
-    environment:
-      - APP_PORT=${APP_PORT}
+  api:
+    restart: unless-stopped
+    image: unmtransinfo/smartsfilter_api:latest
+    container_name: smartsfilter-api
     env_file:
-      - .env
-    volumes:
-      - static_files_flasgger:/app/flasgger_static/
-    networks:
-      - smartsfilter_net
-
-  smartsfilter_ui:
-    build:
-      context: https://github.com/unmtransinfo/SmartFilter-UI.git#production
-    environment:
-      - NODE_OPTIONS=--openssl-legacy-provider
-    env_file:
-      - .env
-    command: sh -c "rm -rf node_modules package-lock.json && npm install && npx vite build"
-    volumes:
-      - static_files_smartsfilter:/app/dist/
-    networks:
-      - smartsfilter_net
-
-  smartsfilter_nginx:
-    restart: always
-    image: nginx:1
-    volumes:
-      - static_files_smartsfilter:/usr/share/nginx/html/static_files_smartsfilter:ro
-      - static_files_flasgger:/usr/share/nginx/html/static_files_flasgger:ro
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - nginx:/etc/nginx
+      - .env.prod
     ports:
-      - "${SMARTSFILTER_NGINX_SSL_PORT:-443}:443"
-      - "${SMARTSFILTER_NGINX_HTTP_PORT:-80}:80"
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+    command: gunicorn --bind 0.0.0.0:8000 --reload app:app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/apidocs/').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: 1
+          memory: 2G
+  ui:
+    restart: unless-stopped
+    image: unmtransinfo/smartsfilter_ui:latest
+    container_name: smartsfilter-ui
+    environment:
+      - VITE_API_PROXY_TARGET=http://api:8000
+    ports:
+      - "127.0.0.1:${UI_PORT:-5173}:5173"
     depends_on:
-      smartsfilter_api:
-        condition: service_started
-      smartsfilter_ui:
-        condition: service_started
-    networks:
-      - smartsfilter_net
-
-volumes:
-  static_files_smartsfilter:
-  static_files_flasgger:
-  nginx:
-
-networks:
-  smartsfilter_net:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: 1
+          memory: 2G

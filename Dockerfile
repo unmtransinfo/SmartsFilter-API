@@ -2,10 +2,10 @@ FROM python:3.12
 
 WORKDIR /app
 
-COPY requirements.txt ./
+COPY app/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install git+https://github.com/jeremyjyang/rdkit-tools 
-COPY . .
+RUN pip install git+https://github.com/jeremyjyang/rdkit-tools 
+COPY app/ .
 
 RUN mkdir -p flasgger_static && \
     cp -r /usr/local/lib/python3.12/site-packages/flasgger/ui3/static/* flasgger_static
