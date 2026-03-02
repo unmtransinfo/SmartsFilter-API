@@ -4,11 +4,6 @@ __pycache__/
 *.so
 *.egg-info/
 
-.env
-.env.*
-!.env.*.example
-app/.env
-
 venv/
 path/
 .venv/
