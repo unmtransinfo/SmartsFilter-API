@@ -7,9 +7,9 @@ services:
       - .env.prod
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
-    command: gunicorn --bind 0.0.0.0:8000 --reload app:app
+    command: gunicorn --bind 0.0.0.0:8000 app:app
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/apidocs/').read()"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/apidocs/"]
       interval: 30s
       timeout: 10s
       retries: 3

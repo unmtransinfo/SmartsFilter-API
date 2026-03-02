@@ -11,7 +11,7 @@ services:
       - '8000:8000'
   ui:
     build:
-      context: https://github.com/unmtransinfo/SmartFilter-UI.git#production
+      context: https://github.com/bivek2003/SmartFilter-UI.git#production
       dockerfile: Dockerfile
     container_name: smartsfilter-ui-development
     env_file:
