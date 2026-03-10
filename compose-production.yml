@@ -6,7 +6,7 @@ services:
     env_file:
       - .env.prod
     ports:
-      - "127.0.0.1:${APP_PORT:-8000}:8000"
+      - "127.0.0.1:${APP_PORT:-8445}:8000"
     command: gunicorn --bind 0.0.0.0:8000 app:app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/apidocs/"]
