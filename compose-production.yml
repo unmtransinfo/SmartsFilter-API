@@ -9,7 +9,8 @@ services:
       - "127.0.0.1:${APP_PORT:-8445}:8000"
     command: gunicorn --bind 0.0.0.0:8000 app:app
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/apidocs/"]
+      # FIX 1: Was hitting /apidocs/ but the app is mounted under /smartsfilter prefix
+      test: ["CMD", "curl", "-f", "http://localhost:8000/smartsfilter/apidocs/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -18,6 +19,7 @@ services:
         limits:
           cpus: "2"
           memory: 4G
+
   ui:
     restart: unless-stopped
     image: unmtransinfo/smartsfilter_ui:latest
@@ -26,12 +28,11 @@ services:
       - VITE_API_PROXY_TARGET=http://api:8000
     ports:
       - "127.0.0.1:${UI_PORT:-5173}:5173"
-    volumes:
-      - ./ui-dist:/app/dist
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:5173/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
