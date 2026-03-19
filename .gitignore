@@ -13,3 +13,5 @@ out3.log
 pains.db
 
 .DS_Store
+
+.env
